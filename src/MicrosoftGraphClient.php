@@ -10,8 +10,6 @@ class MicrosoftGraphClient {
     private $tenantId;
     private $clientId;
     private $clientSecret;
-    private $accessToken;
-    private $tokenExpiresAt;
     
     public function __construct() {
         $this->tenantId = $_ENV['MICROSOFT_TENANT_ID'];
@@ -22,52 +20,21 @@ class MicrosoftGraphClient {
             throw new Exception('Microsoft Graph credentials not configured');
         }
         
-        $this->graph = new \Microsoft\Graph\GraphServiceClient();
-    }
-    
-    private function authenticate() {
-        // Check if we have a valid token
-        if ($this->accessToken && $this->tokenExpiresAt && time() < $this->tokenExpiresAt) {
-            $this->graph->setAccessToken($this->accessToken);
-            return;
-        }
-        
-        // Get new token using client credentials flow
-        $guzzle = new \GuzzleHttp\Client();
-        $url = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
-        
-        try {
-            $response = $guzzle->post($url, [
-                'form_params' => [
-                    'client_id' => $this->clientId,
-                    'client_secret' => $this->clientSecret,
-                    'scope' => 'https://graph.microsoft.com/.default',
-                    'grant_type' => 'client_credentials',
-                ],
-            ]);
-            
-            $tokenData = json_decode($response->getBody()->getContents(), true);
-            
-            if (!isset($tokenData['access_token'])) {
-                throw new Exception('Failed to obtain access token');
-            }
-            
-            $this->accessToken = $tokenData['access_token'];
-            $this->tokenExpiresAt = time() + ($tokenData['expires_in'] ?? 3600) - 60; // 60 second buffer
-            
-            $this->graph->setAccessToken($this->accessToken);
-            
-        } catch (Exception $e) {
-            throw new Exception("Authentication failed: " . $e->getMessage());
-        }
+        $this->graph = new \Microsoft\Graph\GraphServiceClient(
+            new \Microsoft\Kiota\Authentication\PhpLeagueAccessTokenProvider(
+                new \Microsoft\Kiota\Authentication\Oauth\ClientCredentialContext(
+                    $this->tenantId,
+                    $this->clientId,
+                    $this->clientSecret
+                )
+            )
+        );
     }
     
     /**
      * Get free/busy information for a user
      */
     public function getFreeBusy($userEmail, $startTime, $endTime) {
-        $this->authenticate();
-        
         // Note: The new Graph SDK v2 has a different API structure
         // For now, we'll implement a basic version that works with the new SDK
         // This would need to be updated based on the specific v2 API methods
@@ -101,8 +68,6 @@ class MicrosoftGraphClient {
      * Create a calendar event (busy time)
      */
     public function createEvent($userEmail, $subject, $startTime, $endTime, $isAllDay = false) {
-        $this->authenticate();
-        
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
         throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
@@ -112,8 +77,6 @@ class MicrosoftGraphClient {
      * Delete a calendar event
      */
     public function deleteEvent($userEmail, $eventId) {
-        $this->authenticate();
-        
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
         throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
@@ -123,8 +86,6 @@ class MicrosoftGraphClient {
      * Get calendar events for a user
      */
     public function getEvents($userEmail, $startTime, $endTime) {
-        $this->authenticate();
-        
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
         throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
