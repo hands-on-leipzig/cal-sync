@@ -1,0 +1,17 @@
+# Microsoft Calendar Sync - Cron Job Configuration
+
+# Add this line to your crontab to run sync every 15 minutes
+# Replace /path/to/cal-sync with your actual path
+*/15 * * * * /usr/bin/php /path/to/cal-sync/scripts/sync.php >> /path/to/cal-sync/storage/logs/cron.log 2>&1
+
+# Alternative: Run every 5 minutes for more frequent syncing
+# */5 * * * * /usr/bin/php /path/to/cal-sync/scripts/sync.php >> /path/to/cal-sync/storage/logs/cron.log 2>&1
+
+# To edit your crontab, run:
+# crontab -e
+
+# To view your current crontab, run:
+# crontab -l
+
+# Make sure the sync.php script is executable:
+# chmod +x /path/to/cal-sync/scripts/sync.php
