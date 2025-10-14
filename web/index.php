@@ -61,6 +61,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Failed to update sync configuration: ' . $e->getMessage();
                 }
                 break;
+                
+            case 'sync_now':
+                try {
+                    require_once __DIR__ . '/../src/CalendarSyncService.php';
+                    $syncService = new CalendarSyncService();
+                    
+                    $config = $db->fetchOne('SELECT * FROM sync_configurations WHERE id = ?', [$_POST['config_id']]);
+                    if (!$config) {
+                        throw new Exception('Sync configuration not found');
+                    }
+                    
+                    $syncService->syncConfiguration($config);
+                    $success = 'Sync completed successfully';
+                } catch (Exception $e) {
+                    $error = 'Sync failed: ' . $e->getMessage();
+                }
+                break;
+                
+            case 'delete_sync_config':
+                try {
+                    // First delete all related calendar events
+                    $db->query('DELETE FROM calendar_events WHERE sync_config_id = ?', [$_POST['config_id']]);
+                    
+                    // Then delete sync logs
+                    $db->query('DELETE FROM sync_logs WHERE sync_config_id = ?', [$_POST['config_id']]);
+                    
+                    // Finally delete the configuration
+                    $db->query('DELETE FROM sync_configurations WHERE id = ?', [$_POST['config_id']]);
+                    
+                    $success = 'Sync configuration deleted successfully';
+                } catch (Exception $e) {
+                    $error = 'Failed to delete sync configuration: ' . $e->getMessage();
+                }
+                break;
+                
+            case 'sync_all':
+                try {
+                    require_once __DIR__ . '/../src/CalendarSyncService.php';
+                    $syncService = new CalendarSyncService();
+                    
+                    $syncService->syncAll();
+                    $success = 'All active configurations synced successfully';
+                } catch (Exception $e) {
+                    $error = 'Sync all failed: ' . $e->getMessage();
+                }
+                break;
         }
     }
 }
@@ -170,6 +216,24 @@ $recentLogs = $db->fetchAll('
         .btn-success:hover {
             background: #0e6b0e;
         }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .sync-all-section {
+            background: #f8f9fa;
+            border: 1px solid #e1e1e1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
         .alert {
             padding: 12px 16px;
             border-radius: 4px;
@@ -241,6 +305,16 @@ $recentLogs = $db->fetchAll('
             <?php if (isset($error)): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
+            
+            <div class="sync-all-section">
+                <h3>Quick Actions</h3>
+                <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="sync_all">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('This will sync all active configurations. Continue?')">
+                        🔄 Sync All Active Configurations
+                    </button>
+                </form>
+            </div>
             
             <div class="grid">
                 <div class="section">
@@ -353,14 +427,32 @@ $recentLogs = $db->fetchAll('
                                 </td>
                                 <td><?= $config['last_sync_at'] ? date('Y-m-d H:i:s', strtotime($config['last_sync_at'])) : 'Never' ?></td>
                                 <td>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="action" value="toggle_sync_config">
-                                        <input type="hidden" name="config_id" value="<?= $config['id'] ?>">
-                                        <input type="hidden" name="is_active" value="<?= $config['is_active'] ? 0 : 1 ?>">
-                                        <button type="submit" class="btn <?= $config['is_active'] ? 'btn-danger' : 'btn-success' ?>">
-                                            <?= $config['is_active'] ? 'Disable' : 'Enable' ?>
-                                        </button>
-                                    </form>
+                                    <div class="action-buttons">
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="sync_now">
+                                            <input type="hidden" name="config_id" value="<?= $config['id'] ?>">
+                                            <button type="submit" class="btn btn-small" title="Sync Now">
+                                                🔄 Sync
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="toggle_sync_config">
+                                            <input type="hidden" name="config_id" value="<?= $config['id'] ?>">
+                                            <input type="hidden" name="is_active" value="<?= $config['is_active'] ? 0 : 1 ?>">
+                                            <button type="submit" class="btn btn-small <?= $config['is_active'] ? 'btn-danger' : 'btn-success' ?>">
+                                                <?= $config['is_active'] ? 'Disable' : 'Enable' ?>
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this sync configuration? This will also delete all related events and logs.')">
+                                            <input type="hidden" name="action" value="delete_sync_config">
+                                            <input type="hidden" name="config_id" value="<?= $config['id'] ?>">
+                                            <button type="submit" class="btn btn-small btn-danger" title="Delete Configuration">
+                                                🗑️ Delete
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
