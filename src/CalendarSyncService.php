@@ -6,15 +6,18 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/MicrosoftGraphClient.php';
+require_once __DIR__ . '/../src/GoogleCalendarClient.php';
 
 use CalSync\Database;
 use CalSync\MicrosoftGraphClient;
+use CalSync\GoogleCalendarClient;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 class CalendarSyncService {
     private $db;
     private $graphClient;
+    private $googleClient;
     private $logger;
     
     public function __construct() {
@@ -26,6 +29,14 @@ class CalendarSyncService {
         
         $this->db = Database::getInstance();
         $this->graphClient = new MicrosoftGraphClient();
+        
+        // Initialize Google client if credentials are available
+        try {
+            $this->googleClient = new GoogleCalendarClient();
+        } catch (Exception $e) {
+            $this->googleClient = null;
+            // Log warning but don't fail - Google sync is optional
+        }
         
         // Setup logging
         $this->logger = new Logger('cal_sync');
@@ -73,17 +84,21 @@ class CalendarSyncService {
             $startTime = new DateTime();
             $endTime = new DateTime('+' . ($_ENV['MAX_SYNC_RANGE_DAYS'] ?? 30) . ' days');
             
-            // Sync based on direction
+            // Determine calendar types and sync accordingly
+            $sourceType = $this->getCalendarType($config['source_email']);
+            $targetType = $this->getCalendarType($config['target_email']);
+            
+            // Sync based on direction and calendar types
             switch ($config['sync_direction']) {
                 case 'source_to_target':
-                    $result = $this->syncSourceToTarget($config, $startTime, $endTime);
+                    $result = $this->syncSourceToTarget($config, $startTime, $endTime, $sourceType, $targetType);
                     break;
                 case 'target_to_source':
-                    $result = $this->syncTargetToSource($config, $startTime, $endTime);
+                    $result = $this->syncTargetToSource($config, $startTime, $endTime, $sourceType, $targetType);
                     break;
                 case 'bidirectional':
-                    $result1 = $this->syncSourceToTarget($config, $startTime, $endTime);
-                    $result2 = $this->syncTargetToSource($config, $startTime, $endTime);
+                    $result1 = $this->syncSourceToTarget($config, $startTime, $endTime, $sourceType, $targetType);
+                    $result2 = $this->syncTargetToSource($config, $startTime, $endTime, $sourceType, $targetType);
                     $result = [
                         'processed' => $result1['processed'] + $result2['processed'],
                         'created' => $result1['created'] + $result2['created'],
@@ -119,13 +134,26 @@ class CalendarSyncService {
     }
     
     /**
+     * Determine calendar type (google or microsoft)
+     */
+    private function getCalendarType($email) {
+        // Check if it's a Google calendar ID (contains @gmail.com or @googlemail.com or is a calendar ID)
+        if (strpos($email, '@gmail.com') !== false || 
+            strpos($email, '@googlemail.com') !== false ||
+            strpos($email, '@') === false) { // Calendar ID without @
+            return 'google';
+        }
+        return 'microsoft';
+    }
+    
+    /**
      * Sync from source to target
      */
-    private function syncSourceToTarget($config, $startTime, $endTime) {
-        $this->logger->info("Syncing from {$config['source_email']} to {$config['target_email']}");
+    private function syncSourceToTarget($config, $startTime, $endTime, $sourceType, $targetType) {
+        $this->logger->info("Syncing from {$config['source_email']} ({$sourceType}) to {$config['target_email']} ({$targetType})");
         
-        // Get events from source
-        $sourceEvents = $this->graphClient->getEvents($config['source_email'], $startTime, $endTime);
+        // Get events from source based on calendar type
+        $sourceEvents = $this->getEventsFromCalendar($config['source_email'], $startTime, $endTime, $sourceType);
         
         $processed = 0;
         $created = 0;
@@ -135,19 +163,21 @@ class CalendarSyncService {
         foreach ($sourceEvents as $event) {
             $processed++;
             
+            $eventId = $this->getEventId($event, $sourceType);
+            
             // Check if event already exists in target
             $existingEvent = $this->db->fetchOne(
                 'SELECT * FROM calendar_events WHERE microsoft_event_id = ? AND sync_config_id = ? AND sync_direction = ?',
-                [$event->getId(), $config['id'], 'source_to_target']
+                [$eventId, $config['id'], 'source_to_target']
             );
             
             if ($existingEvent) {
                 // Update existing event
-                $this->updateTargetEvent($config, $event, $existingEvent);
+                $this->updateTargetEvent($config, $event, $existingEvent, $sourceType, $targetType);
                 $updated++;
             } else {
                 // Create new event in target
-                $this->createTargetEvent($config, $event);
+                $this->createTargetEvent($config, $event, $sourceType, $targetType);
                 $created++;
             }
         }
@@ -158,11 +188,11 @@ class CalendarSyncService {
     /**
      * Sync from target to source
      */
-    private function syncTargetToSource($config, $startTime, $endTime) {
-        $this->logger->info("Syncing from {$config['target_email']} to {$config['source_email']}");
+    private function syncTargetToSource($config, $startTime, $endTime, $sourceType, $targetType) {
+        $this->logger->info("Syncing from {$config['target_email']} ({$targetType}) to {$config['source_email']} ({$sourceType})");
         
-        // Get events from target
-        $targetEvents = $this->graphClient->getEvents($config['target_email'], $startTime, $endTime);
+        // Get events from target based on calendar type
+        $targetEvents = $this->getEventsFromCalendar($config['target_email'], $startTime, $endTime, $targetType);
         
         $processed = 0;
         $created = 0;
@@ -172,19 +202,21 @@ class CalendarSyncService {
         foreach ($targetEvents as $event) {
             $processed++;
             
+            $eventId = $this->getEventId($event, $targetType);
+            
             // Check if event already exists in source
             $existingEvent = $this->db->fetchOne(
                 'SELECT * FROM calendar_events WHERE microsoft_event_id = ? AND sync_config_id = ? AND sync_direction = ?',
-                [$event->getId(), $config['id'], 'target_to_source']
+                [$eventId, $config['id'], 'target_to_source']
             );
             
             if ($existingEvent) {
                 // Update existing event
-                $this->updateSourceEvent($config, $event, $existingEvent);
+                $this->updateSourceEvent($config, $event, $existingEvent, $sourceType, $targetType);
                 $updated++;
             } else {
                 // Create new event in source
-                $this->createSourceEvent($config, $event);
+                $this->createSourceEvent($config, $event, $sourceType, $targetType);
                 $created++;
             }
         }
@@ -193,19 +225,91 @@ class CalendarSyncService {
     }
     
     /**
+     * Get events from calendar based on type
+     */
+    private function getEventsFromCalendar($calendarId, $startTime, $endTime, $type) {
+        if ($type === 'google') {
+            if (!$this->googleClient) {
+                throw new Exception('Google Calendar client not available');
+            }
+            return $this->googleClient->getEvents($calendarId, $startTime, $endTime);
+        } else {
+            return $this->graphClient->getEvents($calendarId, $startTime, $endTime);
+        }
+    }
+    
+    /**
+     * Get event ID based on calendar type
+     */
+    private function getEventId($event, $type) {
+        if ($type === 'google') {
+            return $event->getId();
+        } else {
+            return $event->getId();
+        }
+    }
+    
+    /**
+     * Get event details based on calendar type
+     */
+    private function getEventDetails($event, $type) {
+        if ($type === 'google') {
+            return [
+                'id' => $event->getId(),
+                'subject' => $event->getSummary(),
+                'start' => $event->getStart(),
+                'end' => $event->getEnd(),
+                'isAllDay' => $event->getStart()->getDate() !== null,
+                'showAs' => 'busy'
+            ];
+        } else {
+            return [
+                'id' => $event->getId(),
+                'subject' => $event->getSubject(),
+                'start' => $event->getStart(),
+                'end' => $event->getEnd(),
+                'isAllDay' => $event->getIsAllDay(),
+                'showAs' => $event->getShowAs()
+            ];
+        }
+    }
+    
+    /**
      * Create event in target calendar
      */
-    private function createTargetEvent($config, $sourceEvent) {
-        $startTime = new DateTime($sourceEvent->getStart()->getDateTime());
-        $endTime = new DateTime($sourceEvent->getEnd()->getDateTime());
+    private function createTargetEvent($config, $sourceEvent, $sourceType, $targetType) {
+        $eventDetails = $this->getEventDetails($sourceEvent, $sourceType);
         
-        $newEvent = $this->graphClient->createEvent(
-            $config['target_email'],
-            '[SYNC] ' . $sourceEvent->getSubject(),
-            $startTime,
-            $endTime,
-            $sourceEvent->getIsAllDay()
-        );
+        // Parse start and end times based on calendar type
+        if ($eventDetails['isAllDay']) {
+            $startTime = new DateTime($eventDetails['start']->getDate());
+            $endTime = new DateTime($eventDetails['end']->getDate());
+        } else {
+            $startTime = new DateTime($eventDetails['start']->getDateTime());
+            $endTime = new DateTime($eventDetails['end']->getDateTime());
+        }
+        
+        // Create event in target calendar based on type
+        if ($targetType === 'google') {
+            if (!$this->googleClient) {
+                throw new Exception('Google Calendar client not available');
+            }
+            $newEvent = $this->googleClient->createEvent(
+                $config['target_email'],
+                $eventDetails['subject'],
+                $startTime,
+                $endTime,
+                $eventDetails['isAllDay']
+            );
+        } else {
+            $newEvent = $this->graphClient->createEvent(
+                $config['target_email'],
+                $eventDetails['subject'],
+                $startTime,
+                $endTime,
+                $eventDetails['isAllDay']
+            );
+        }
         
         // Store in database
         $this->db->query(
@@ -213,11 +317,11 @@ class CalendarSyncService {
             [
                 $config['id'],
                 $newEvent->getId(),
-                $sourceEvent->getSubject(),
+                $eventDetails['subject'],
                 $startTime->format('Y-m-d H:i:s'),
                 $endTime->format('Y-m-d H:i:s'),
-                $sourceEvent->getIsAllDay() ? 1 : 0,
-                $sourceEvent->getShowAs(),
+                $eventDetails['isAllDay'] ? 1 : 0,
+                $eventDetails['showAs'],
                 $config['source_email'],
                 $config['target_email'],
                 'source_to_target'
@@ -228,17 +332,39 @@ class CalendarSyncService {
     /**
      * Create event in source calendar
      */
-    private function createSourceEvent($config, $targetEvent) {
-        $startTime = new DateTime($targetEvent->getStart()->getDateTime());
-        $endTime = new DateTime($targetEvent->getEnd()->getDateTime());
+    private function createSourceEvent($config, $targetEvent, $sourceType, $targetType) {
+        $eventDetails = $this->getEventDetails($targetEvent, $targetType);
         
-        $newEvent = $this->graphClient->createEvent(
-            $config['source_email'],
-            '[SYNC] ' . $targetEvent->getSubject(),
-            $startTime,
-            $endTime,
-            $targetEvent->getIsAllDay()
-        );
+        // Parse start and end times based on calendar type
+        if ($eventDetails['isAllDay']) {
+            $startTime = new DateTime($eventDetails['start']->getDate());
+            $endTime = new DateTime($eventDetails['end']->getDate());
+        } else {
+            $startTime = new DateTime($eventDetails['start']->getDateTime());
+            $endTime = new DateTime($eventDetails['end']->getDateTime());
+        }
+        
+        // Create event in source calendar based on type
+        if ($sourceType === 'google') {
+            if (!$this->googleClient) {
+                throw new Exception('Google Calendar client not available');
+            }
+            $newEvent = $this->googleClient->createEvent(
+                $config['source_email'],
+                $eventDetails['subject'],
+                $startTime,
+                $endTime,
+                $eventDetails['isAllDay']
+            );
+        } else {
+            $newEvent = $this->graphClient->createEvent(
+                $config['source_email'],
+                $eventDetails['subject'],
+                $startTime,
+                $endTime,
+                $eventDetails['isAllDay']
+            );
+        }
         
         // Store in database
         $this->db->query(
@@ -246,11 +372,11 @@ class CalendarSyncService {
             [
                 $config['id'],
                 $newEvent->getId(),
-                $targetEvent->getSubject(),
+                $eventDetails['subject'],
                 $startTime->format('Y-m-d H:i:s'),
                 $endTime->format('Y-m-d H:i:s'),
-                $targetEvent->getIsAllDay() ? 1 : 0,
-                $targetEvent->getShowAs(),
+                $eventDetails['isAllDay'] ? 1 : 0,
+                $eventDetails['showAs'],
                 $config['source_email'],
                 $config['target_email'],
                 'target_to_source'
@@ -261,19 +387,19 @@ class CalendarSyncService {
     /**
      * Update event in target calendar
      */
-    private function updateTargetEvent($config, $sourceEvent, $existingEvent) {
+    private function updateTargetEvent($config, $sourceEvent, $existingEvent, $sourceType, $targetType) {
         // For now, we'll just log that an update would happen
-        // In a full implementation, you'd update the event via Graph API
-        $this->logger->info("Would update event {$existingEvent['microsoft_event_id']} in target calendar");
+        // In a full implementation, you'd update the event via the appropriate API
+        $this->logger->info("Would update event {$existingEvent['microsoft_event_id']} in target calendar ({$targetType})");
     }
     
     /**
      * Update event in source calendar
      */
-    private function updateSourceEvent($config, $targetEvent, $existingEvent) {
+    private function updateSourceEvent($config, $targetEvent, $existingEvent, $sourceType, $targetType) {
         // For now, we'll just log that an update would happen
-        // In a full implementation, you'd update the event via Graph API
-        $this->logger->info("Would update event {$existingEvent['microsoft_event_id']} in source calendar");
+        // In a full implementation, you'd update the event via the appropriate API
+        $this->logger->info("Would update event {$existingEvent['microsoft_event_id']} in source calendar ({$sourceType})");
     }
     
     /**

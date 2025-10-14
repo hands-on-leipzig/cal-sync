@@ -33,11 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add_sync_config':
                 try {
                     $db->query(
-                        'INSERT INTO sync_configurations (user_id, source_email, target_email, sync_direction, sync_frequency_minutes) VALUES (?, ?, ?, ?, ?)',
+                        'INSERT INTO sync_configurations (user_id, source_email, target_email, source_type, target_type, sync_direction, sync_frequency_minutes) VALUES (?, ?, ?, ?, ?, ?, ?)',
                         [
                             $_POST['user_id'],
                             $_POST['source_email'],
                             $_POST['target_email'],
+                            $_POST['source_type'],
+                            $_POST['target_type'],
                             $_POST['sync_direction'],
                             $_POST['sync_frequency_minutes']
                         ]
@@ -271,12 +273,28 @@ $recentLogs = $db->fetchAll('
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="source_email">Source Email</label>
-                            <input type="email" id="source_email" name="source_email" required>
+                            <label for="source_email">Source Email/Calendar ID</label>
+                            <input type="text" id="source_email" name="source_email" placeholder="user@company.com or calendar-id" required>
+                            <small>For Google Calendar: use email address or calendar ID</small>
                         </div>
                         <div class="form-group">
-                            <label for="target_email">Target Email</label>
-                            <input type="email" id="target_email" name="target_email" required>
+                            <label for="source_type">Source Calendar Type</label>
+                            <select id="source_type" name="source_type" required>
+                                <option value="microsoft">Microsoft Calendar</option>
+                                <option value="google">Google Calendar</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="target_email">Target Email/Calendar ID</label>
+                            <input type="text" id="target_email" name="target_email" placeholder="user@company.com or calendar-id" required>
+                            <small>For Google Calendar: use email address or calendar ID</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="target_type">Target Calendar Type</label>
+                            <select id="target_type" name="target_type" required>
+                                <option value="microsoft">Microsoft Calendar</option>
+                                <option value="google">Google Calendar</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="sync_direction">Sync Direction</label>
@@ -301,8 +319,8 @@ $recentLogs = $db->fetchAll('
                     <thead>
                         <tr>
                             <th>User</th>
-                            <th>Source Email</th>
-                            <th>Target Email</th>
+                            <th>Source Calendar</th>
+                            <th>Target Calendar</th>
                             <th>Direction</th>
                             <th>Frequency</th>
                             <th>Status</th>
@@ -314,8 +332,18 @@ $recentLogs = $db->fetchAll('
                         <?php foreach ($syncConfigs as $config): ?>
                             <tr>
                                 <td><?= htmlspecialchars($config['display_name']) ?></td>
-                                <td><?= htmlspecialchars($config['source_email']) ?></td>
-                                <td><?= htmlspecialchars($config['target_email']) ?></td>
+                                <td>
+                                    <?= htmlspecialchars($config['source_email']) ?>
+                                    <br><small class="status-<?= $config['source_type'] === 'google' ? 'success' : 'active' ?>">
+                                        <?= ucfirst($config['source_type']) ?>
+                                    </small>
+                                </td>
+                                <td>
+                                    <?= htmlspecialchars($config['target_email']) ?>
+                                    <br><small class="status-<?= $config['target_type'] === 'google' ? 'success' : 'active' ?>">
+                                        <?= ucfirst($config['target_type']) ?>
+                                    </small>
+                                </td>
                                 <td><?= htmlspecialchars($config['sync_direction']) ?></td>
                                 <td><?= $config['sync_frequency_minutes'] ?> min</td>
                                 <td>

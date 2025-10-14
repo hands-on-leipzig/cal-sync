@@ -1,10 +1,11 @@
 {
     "name": "cal-sync/microsoft-calendar-sync",
-    "description": "Microsoft Calendar Free/Busy Sync Application",
+    "description": "Microsoft Calendar Free/Busy Sync Application with Google Calendar Support",
     "type": "project",
     "require": {
         "php": ">=8.1",
         "microsoft/microsoft-graph": "^2.0",
+        "google/apiclient": "^2.15",
         "guzzlehttp/guzzle": "^7.0",
         "vlucas/phpdotenv": "^5.0",
         "monolog/monolog": "^3.0"

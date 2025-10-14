@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS sync_configurations (
     user_id INT NOT NULL,
     source_email VARCHAR(255) NOT NULL,
     target_email VARCHAR(255) NOT NULL,
+    source_type ENUM('google', 'microsoft') DEFAULT 'microsoft',
+    target_type ENUM('google', 'microsoft') DEFAULT 'microsoft',
     sync_direction ENUM('source_to_target', 'target_to_source', 'bidirectional') DEFAULT 'bidirectional',
     sync_frequency_minutes INT DEFAULT 15,
     is_active BOOLEAN DEFAULT TRUE,

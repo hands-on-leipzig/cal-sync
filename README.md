@@ -1,10 +1,11 @@
-# Microsoft Calendar Sync Application
+# Microsoft & Google Calendar Sync Application
 
-A PHP application for synchronizing free/busy time between Microsoft calendars using the Microsoft Graph API.
+A PHP application for synchronizing free/busy time between Microsoft and Google calendars using their respective APIs.
 
 ## Features
 
-- **Bidirectional Sync**: Sync calendar events between two Microsoft calendars
+- **Cross-Platform Sync**: Sync between Microsoft and Google calendars
+- **Bidirectional Sync**: Sync calendar events between two calendars
 - **Flexible Configuration**: Support for source-to-target, target-to-source, or bidirectional syncing
 - **Web Interface**: Easy-to-use web interface for managing users and sync configurations
 - **Automated Syncing**: Cron job support for automated synchronization
@@ -17,6 +18,7 @@ A PHP application for synchronizing free/busy time between Microsoft calendars u
 - Composer
 - MySQL/MariaDB or PostgreSQL database
 - Microsoft Azure AD application registration
+- Google Cloud Console project with Calendar API enabled
 - Web server (Apache/Nginx)
 
 ## Installation
@@ -52,7 +54,15 @@ A PHP application for synchronizing free/busy time between Microsoft calendars u
    - Get your Tenant ID, Client ID, and Client Secret
    - Update the `.env` file with these credentials
 
-6. **Set up cron job**:
+6. **Configure Google Calendar API**:
+   - Create a project in Google Cloud Console
+   - Enable the Google Calendar API
+   - Create credentials (Service Account)
+   - Download the JSON credentials file
+   - Place the credentials file in `storage/google-credentials.json`
+   - Share your Google Calendar with the service account email
+
+7. **Set up cron job**:
    ```bash
    # Edit your crontab
    crontab -e
@@ -89,6 +99,10 @@ LOG_LEVEL=info
 # Sync Configuration
 SYNC_INTERVAL_MINUTES=15
 DEFAULT_TIMEZONE=UTC
+MAX_SYNC_RANGE_DAYS=30
+
+# Google Calendar API Configuration
+GOOGLE_CREDENTIALS_PATH=storage/google-credentials.json
 ```
 
 ### Microsoft Graph API Setup
@@ -104,6 +118,26 @@ DEFAULT_TIMEZONE=UTC
 6. Go to "Certificates & secrets" and create a new client secret
 7. Note down the Tenant ID, Client ID, and Client Secret
 
+### Google Calendar API Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google Calendar API:
+   - Go to "APIs & Services" > "Library"
+   - Search for "Google Calendar API"
+   - Click "Enable"
+4. Create credentials:
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "Service Account"
+   - Fill in the service account details
+   - Go to the service account and create a key (JSON format)
+   - Download the JSON file
+5. Place the credentials file in `storage/google-credentials.json`
+6. Share your Google Calendar with the service account:
+   - Open your Google Calendar
+   - Go to calendar settings
+   - Add the service account email with "Make changes to events" permission
+
 ## Usage
 
 ### Web Interface
@@ -111,9 +145,32 @@ DEFAULT_TIMEZONE=UTC
 Access the web interface at `web/index.php` to:
 
 - Add users
-- Configure sync relationships between calendars
+- Configure sync relationships between calendars (Microsoft ↔ Google)
 - View sync status and logs
 - Enable/disable sync configurations
+
+### Calendar Configuration Examples
+
+**Google → Microsoft Sync:**
+- Source Email: `your-email@gmail.com` or calendar ID
+- Source Type: Google Calendar
+- Target Email: `user@company.com`
+- Target Type: Microsoft Calendar
+- Direction: Source → Target
+
+**Microsoft → Google Sync:**
+- Source Email: `user@company.com`
+- Source Type: Microsoft Calendar
+- Target Email: `your-email@gmail.com` or calendar ID
+- Target Type: Google Calendar
+- Direction: Source → Target
+
+**Bidirectional Sync:**
+- Source Email: `user1@company.com`
+- Source Type: Microsoft Calendar
+- Target Email: `user2@gmail.com`
+- Target Type: Google Calendar
+- Direction: Bidirectional
 
 ### Manual Sync
 
