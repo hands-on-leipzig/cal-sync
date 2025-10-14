@@ -5,10 +5,6 @@
 
 namespace CalSync;
 
-use Google\Client;
-use Google\Service\Calendar;
-use Google\Service\Calendar\Event;
-
 class GoogleCalendarClient {
     private $client;
     private $service;
@@ -21,11 +17,11 @@ class GoogleCalendarClient {
             throw new Exception('Google credentials file not found. Please set GOOGLE_CREDENTIALS_PATH or place credentials.json in storage/');
         }
         
-        $this->client = new Client();
+        $this->client = new \Google\Client();
         $this->client->setAuthConfig($this->credentialsPath);
-        $this->client->addScope(Calendar::CALENDAR);
+        $this->client->addScope(\Google\Service\Calendar::CALENDAR);
         
-        $this->service = new Calendar($this->client);
+        $this->service = new \Google\Service\Calendar($this->client);
     }
     
     /**
@@ -55,7 +51,7 @@ class GoogleCalendarClient {
      */
     public function createEvent($calendarId, $subject, $startTime, $endTime, $isAllDay = false) {
         try {
-            $event = new Event();
+            $event = new \Google\Service\Calendar\Event();
             $event->setSummary('[SYNC] ' . $subject);
             $event->setDescription('Synced from external calendar');
             

@@ -5,10 +5,6 @@
 
 namespace CalSync;
 
-use Microsoft\Graph\Graph;
-use Microsoft\Graph\Http\GraphRequest;
-use Microsoft\Graph\Model\ScheduleInformation;
-
 class MicrosoftGraphClient {
     private $graph;
     private $tenantId;
@@ -26,7 +22,7 @@ class MicrosoftGraphClient {
             throw new Exception('Microsoft Graph credentials not configured');
         }
         
-        $this->graph = new Graph();
+        $this->graph = new \Microsoft\Graph\Graph();
     }
     
     private function authenticate() {
@@ -88,7 +84,7 @@ class MicrosoftGraphClient {
         try {
             $response = $this->graph->createRequest('POST', '/me/calendar/getSchedule')
                 ->attachBody($requestBody)
-                ->setReturnType(ScheduleInformation::class)
+                ->setReturnType(\Microsoft\Graph\Model\ScheduleInformation::class)
                 ->execute();
             
             return $response;
