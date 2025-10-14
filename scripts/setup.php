@@ -5,16 +5,17 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../src/Database.php';
 
 // Load environment variables
 if (file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+    $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 } else {
     echo "Error: .env file not found. Please copy .env.example to .env and configure it.\n";
     exit(1);
 }
+
+use CalSync\Database;
 
 try {
     $db = Database::getInstance();

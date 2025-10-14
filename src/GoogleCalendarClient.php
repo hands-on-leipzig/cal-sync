@@ -3,6 +3,8 @@
  * Google Calendar API client for calendar operations
  */
 
+namespace CalSync;
+
 use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;

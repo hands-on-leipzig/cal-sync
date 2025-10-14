@@ -4,13 +4,14 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../src/Database.php';
 
 // Load environment variables
 if (file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+    $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
+
+use CalSync\Database;
 
 $db = Database::getInstance();
 
@@ -64,8 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'sync_now':
                 try {
-                    require_once __DIR__ . '/../src/CalendarSyncService.php';
-                    $syncService = new CalendarSyncService();
+                    $syncService = new \CalSync\CalendarSyncService();
                     
                     $config = $db->fetchOne('SELECT * FROM sync_configurations WHERE id = ?', [$_POST['config_id']]);
                     if (!$config) {
@@ -98,8 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'sync_all':
                 try {
-                    require_once __DIR__ . '/../src/CalendarSyncService.php';
-                    $syncService = new CalendarSyncService();
+                    $syncService = new \CalSync\CalendarSyncService();
                     
                     $syncService->syncAll();
                     $success = 'All active configurations synced successfully';

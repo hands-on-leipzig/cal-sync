@@ -3,6 +3,8 @@
  * Microsoft Graph API client for calendar operations
  */
 
+namespace CalSync;
+
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Http\GraphRequest;
 use Microsoft\Graph\Model\ScheduleInformation;
