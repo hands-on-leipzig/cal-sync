@@ -104,7 +104,19 @@ class MicrosoftGraphClient {
             return $createdEvent;
             
         } catch (\Exception $e) {
-            throw new \Exception("Failed to create Microsoft Calendar event: " . $e->getMessage());
+            // Enhanced error logging for debugging
+            $errorDetails = [
+                'userEmail' => $userEmail,
+                'subject' => $subject,
+                'startTime' => $startTime->format('c'),
+                'endTime' => $endTime->format('c'),
+                'isAllDay' => $isAllDay,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ];
+            
+            throw new \Exception("Failed to create Microsoft Calendar event: " . $e->getMessage() . " | Details: " . json_encode($errorDetails));
         }
     }
     
@@ -144,7 +156,17 @@ class MicrosoftGraphClient {
             return $events->getValue();
             
         } catch (\Exception $e) {
-            throw new \Exception("Failed to get Microsoft Calendar events: " . $e->getMessage());
+            // Enhanced error logging for debugging
+            $errorDetails = [
+                'userEmail' => $userEmail,
+                'startTime' => $startTime->format('c'),
+                'endTime' => $endTime->format('c'),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ];
+            
+            throw new \Exception("Failed to get Microsoft Calendar events: " . $e->getMessage() . " | Details: " . json_encode($errorDetails));
         }
     }
 }
