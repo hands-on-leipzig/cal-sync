@@ -67,10 +67,10 @@ class MicrosoftGraphClient {
     public function createEvent($userEmail, $subject, $startTime, $endTime, $isAllDay = false) {
         try {
             $event = new \Microsoft\Graph\Generated\Models\Event();
-            $event->setSubject('[SYNC] ' . $subject);
+            $event->setSubject('[SYNC] ' . ($subject ?? 'Busy'));
             $event->setBody(new \Microsoft\Graph\Generated\Models\ItemBody());
             $event->getBody()->setContent('Synced from external calendar');
-            $event->getBody()->setContentType(\Microsoft\Graph\Generated\Models\BodyType::TEXT);
+            $event->getBody()->setContentType(new \Microsoft\Graph\Generated\Models\BodyType('text'));
             
             if ($isAllDay) {
                 $start = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();

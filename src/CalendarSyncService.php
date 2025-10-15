@@ -27,18 +27,20 @@ class CalendarSyncService {
         $this->db = Database::getInstance();
         $this->graphClient = new MicrosoftGraphClient();
         
-        // Initialize Google client if credentials are available
-        try {
-            $this->googleClient = new GoogleCalendarClient();
-        } catch (\Exception $e) {
-            $this->googleClient = null;
-            // Log warning but don't fail - Google sync is optional
-        }
-        
-        // Setup logging
+        // Setup logging first
         $this->logger = new \Monolog\Logger('cal_sync');
         $logFile = __DIR__ . '/../storage/logs/sync_' . date('Y-m-d') . '.log';
         $this->logger->pushHandler(new \Monolog\Handler\StreamHandler($logFile, \Monolog\Logger::INFO));
+        
+        // Initialize Google client if credentials are available
+        try {
+            $this->googleClient = new GoogleCalendarClient();
+            $this->logger->info('Google Calendar client initialized successfully');
+        } catch (\Exception $e) {
+            $this->googleClient = null;
+            $this->logger->warning('Google Calendar client initialization failed: ' . $e->getMessage());
+            // Log warning but don't fail - Google sync is optional
+        }
     }
     
     /**
@@ -242,7 +244,7 @@ class CalendarSyncService {
         if ($type === 'google') {
             return [
                 'id' => $event->getId(),
-                'subject' => $event->getSummary(),
+                'subject' => $event->getSummary() ?? 'Busy',
                 'start' => $event->getStart(),
                 'end' => $event->getEnd(),
                 'isAllDay' => $event->getStart()->getDate() !== null,
