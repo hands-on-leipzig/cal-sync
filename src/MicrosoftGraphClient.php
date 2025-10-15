@@ -25,7 +25,8 @@ class MicrosoftGraphClient {
                 $this->tenantId,
                 $this->clientId,
                 $this->clientSecret
-            )
+            ),
+            ['https://graph.microsoft.com/.default']
         );
     }
     
@@ -33,29 +34,26 @@ class MicrosoftGraphClient {
      * Get free/busy information for a user
      */
     public function getFreeBusy($userEmail, $startTime, $endTime) {
-        // Note: The new Graph SDK v2 has a different API structure
-        // For now, we'll implement a basic version that works with the new SDK
-        // This would need to be updated based on the specific v2 API methods
-        
         try {
-            // Using the new GraphServiceClient API structure
-            // This is a simplified implementation - you may need to adjust based on actual v2 API
-            $requestBody = [
-                'schedules' => [$userEmail],
-                'startTime' => [
-                    'dateTime' => $startTime->format('c'),
-                    'timeZone' => $_ENV['DEFAULT_TIMEZONE'] ?? 'UTC',
-                ],
-                'endTime' => [
-                    'dateTime' => $endTime->format('c'),
-                    'timeZone' => $_ENV['DEFAULT_TIMEZONE'] ?? 'UTC',
-                ],
-                'availabilityViewInterval' => 30,
-            ];
+            // Use the getSchedule API for free/busy information
+            $scheduleRequest = new \Microsoft\Graph\Generated\Users\Item\Calendar\GetSchedule\GetSchedulePostRequestBody();
+            $scheduleRequest->setSchedules([$userEmail]);
             
-            // This is a placeholder - the actual v2 API call would be different
-            // You'll need to check the Microsoft Graph SDK v2 documentation for the correct method
-            throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+            $startDateTime = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+            $startDateTime->setDateTime($startTime->format('c'));
+            $startDateTime->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+            $scheduleRequest->setStartTime($startDateTime);
+            
+            $endDateTime = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+            $endDateTime->setDateTime($endTime->format('c'));
+            $endDateTime->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+            $scheduleRequest->setEndTime($endDateTime);
+            
+            $scheduleRequest->setAvailabilityViewInterval(30);
+            
+            $result = $this->graph->users()->byUserId($userEmail)->calendar()->getSchedule()->post($scheduleRequest);
+            
+            return $result;
             
         } catch (\Exception $e) {
             throw new \Exception("Failed to get free/busy data: " . $e->getMessage());
@@ -66,26 +64,78 @@ class MicrosoftGraphClient {
      * Create a calendar event (busy time)
      */
     public function createEvent($userEmail, $subject, $startTime, $endTime, $isAllDay = false) {
-        // Note: Microsoft Graph SDK v2 API calls need to be updated
-        // This is a placeholder implementation
-        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        try {
+            $event = new \Microsoft\Graph\Generated\Models\Event();
+            $event->setSubject('[SYNC] ' . $subject);
+            $event->setBody(new \Microsoft\Graph\Generated\Models\ItemBody());
+            $event->getBody()->setContent('Synced from external calendar');
+            $event->getBody()->setContentType(\Microsoft\Graph\Generated\Models\BodyType::TEXT);
+            
+            if ($isAllDay) {
+                $start = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+                $start->setDateTime($startTime->format('Y-m-d'));
+                $start->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+                $event->setStart($start);
+                
+                $end = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+                $end->setDateTime($endTime->format('Y-m-d'));
+                $end->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+                $event->setEnd($end);
+                
+                $event->setIsAllDay(true);
+            } else {
+                $start = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+                $start->setDateTime($startTime->format('c'));
+                $start->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+                $event->setStart($start);
+                
+                $end = new \Microsoft\Graph\Generated\Models\DateTimeTimeZone();
+                $end->setDateTime($endTime->format('c'));
+                $end->setTimeZone($_ENV['DEFAULT_TIMEZONE'] ?? 'UTC');
+                $event->setEnd($end);
+                
+                $event->setIsAllDay(false);
+            }
+            
+            $createdEvent = $this->graph->users()->byUserId($userEmail)->calendar()->events()->post($event);
+            
+            return $createdEvent;
+            
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to create Microsoft Calendar event: " . $e->getMessage());
+        }
     }
     
     /**
      * Delete a calendar event
      */
     public function deleteEvent($userEmail, $eventId) {
-        // Note: Microsoft Graph SDK v2 API calls need to be updated
-        // This is a placeholder implementation
-        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        try {
+            $this->graph->users()->byUserId($userEmail)->calendar()->events()->byEventId($eventId)->delete();
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to delete Microsoft Calendar event: " . $e->getMessage());
+        }
     }
     
     /**
      * Get calendar events for a user
      */
     public function getEvents($userEmail, $startTime, $endTime) {
-        // Note: Microsoft Graph SDK v2 API calls need to be updated
-        // This is a placeholder implementation
-        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        try {
+            $requestConfiguration = new \Microsoft\Graph\Generated\Users\Item\Calendar\Events\EventsRequestBuilderGetRequestConfiguration();
+            $queryParameters = new \Microsoft\Graph\Generated\Users\Item\Calendar\Events\EventsRequestBuilderGetQueryParameters();
+            $queryParameters->setStartDateTime($startTime->format('c'));
+            $queryParameters->setEndDateTime($endTime->format('c'));
+            $queryParameters->setOrderby(['start/dateTime']);
+            $requestConfiguration->setQueryParameters($queryParameters);
+            
+            $events = $this->graph->users()->byUserId($userEmail)->calendar()->events()->get($requestConfiguration);
+            
+            return $events->getValue();
+            
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to get Microsoft Calendar events: " . $e->getMessage());
+        }
     }
 }
