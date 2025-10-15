@@ -123,14 +123,17 @@ class MicrosoftGraphClient {
      */
     public function getEvents($userEmail, $startTime, $endTime) {
         try {
-            $requestConfiguration = new \Microsoft\Graph\Generated\Users\Item\Calendar\Events\EventsRequestBuilderGetRequestConfiguration();
-            $queryParameters = new \Microsoft\Graph\Generated\Users\Item\Calendar\Events\EventsRequestBuilderGetQueryParameters();
-            $queryParameters->setStartDateTime($startTime->format('c'));
-            $queryParameters->setEndDateTime($endTime->format('c'));
-            $queryParameters->setOrderby(['start/dateTime']);
+            // Use the calendarView API which is designed for date range queries
+            $requestConfiguration = new \Microsoft\Graph\Generated\Users\Item\Calendar\CalendarView\CalendarViewRequestBuilderGetRequestConfiguration();
+            $queryParameters = new \Microsoft\Graph\Generated\Users\Item\Calendar\CalendarView\CalendarViewRequestBuilderGetQueryParameters();
+            
+            // Set the date range using direct property assignment
+            $queryParameters->startDateTime = $startTime->format('c');
+            $queryParameters->endDateTime = $endTime->format('c');
+            $queryParameters->orderby = ['start/dateTime'];
             $requestConfiguration->setQueryParameters($queryParameters);
             
-            $events = $this->graph->users()->byUserId($userEmail)->calendar()->events()->get($requestConfiguration);
+            $events = $this->graph->users()->byUserId($userEmail)->calendar()->calendarView()->get($requestConfiguration);
             
             return $events->getValue();
             
