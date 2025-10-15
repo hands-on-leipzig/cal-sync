@@ -51,7 +51,8 @@ class MicrosoftGraphClient {
             
             $scheduleRequest->setAvailabilityViewInterval(30);
             
-            $result = $this->graph->users()->byUserId($userEmail)->calendar()->getSchedule()->post($scheduleRequest);
+            $promise = $this->graph->users()->byUserId($userEmail)->calendar()->getSchedule()->post($scheduleRequest);
+            $result = $promise->wait();
             
             return $result;
             
@@ -97,7 +98,8 @@ class MicrosoftGraphClient {
                 $event->setIsAllDay(false);
             }
             
-            $createdEvent = $this->graph->users()->byUserId($userEmail)->calendar()->events()->post($event);
+            $promise = $this->graph->users()->byUserId($userEmail)->calendar()->events()->post($event);
+            $createdEvent = $promise->wait();
             
             return $createdEvent;
             
@@ -111,7 +113,8 @@ class MicrosoftGraphClient {
      */
     public function deleteEvent($userEmail, $eventId) {
         try {
-            $this->graph->users()->byUserId($userEmail)->calendar()->events()->byEventId($eventId)->delete();
+            $promise = $this->graph->users()->byUserId($userEmail)->calendar()->events()->byEventId($eventId)->delete();
+            $promise->wait();
             return true;
         } catch (\Exception $e) {
             throw new \Exception("Failed to delete Microsoft Calendar event: " . $e->getMessage());
@@ -131,9 +134,12 @@ class MicrosoftGraphClient {
             $queryParameters->startDateTime = $startTime->format('c');
             $queryParameters->endDateTime = $endTime->format('c');
             $queryParameters->orderby = ['start/dateTime'];
-            $requestConfiguration->setQueryParameters($queryParameters);
             
-            $events = $this->graph->users()->byUserId($userEmail)->calendar()->calendarView()->get($requestConfiguration);
+            // Set query parameters on request configuration
+            $requestConfiguration->queryParameters = $queryParameters;
+            
+            $promise = $this->graph->users()->byUserId($userEmail)->calendar()->calendarView()->get($requestConfiguration);
+            $events = $promise->wait();
             
             return $events->getValue();
             
