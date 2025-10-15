@@ -81,9 +81,11 @@ class CalendarSyncService {
             $startTime = new \DateTime();
             $endTime = new \DateTime('+' . ($_ENV['MAX_SYNC_RANGE_DAYS'] ?? 30) . ' days');
             
-            // Determine calendar types and sync accordingly
-            $sourceType = $this->getCalendarType($config['source_email']);
-            $targetType = $this->getCalendarType($config['target_email']);
+            // Determine calendar types from database configuration
+            $sourceType = $config['source_type'] ?? 'microsoft';
+            $targetType = $config['target_type'] ?? 'microsoft';
+            
+            $this->logger->info("Sync configuration: Source={$config['source_email']} ({$sourceType}) -> Target={$config['target_email']} ({$targetType})");
             
             // Sync based on direction and calendar types
             switch ($config['sync_direction']) {
@@ -128,19 +130,6 @@ class CalendarSyncService {
                 ['success', $eventsProcessed, $eventsCreated, $eventsUpdated, $eventsDeleted, $syncLogId]
             );
         }
-    }
-    
-    /**
-     * Determine calendar type (google or microsoft)
-     */
-    private function getCalendarType($email) {
-        // Check if it's a Google calendar ID (contains @gmail.com or @googlemail.com or is a calendar ID)
-        if (strpos($email, '@gmail.com') !== false || 
-            strpos($email, '@googlemail.com') !== false ||
-            strpos($email, '@') === false) { // Calendar ID without @
-            return 'google';
-        }
-        return 'microsoft';
     }
     
     /**
