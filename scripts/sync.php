@@ -13,7 +13,7 @@ try {
     $syncService = new CalendarSyncService();
     $syncService->syncAll();
     echo "Sync completed successfully at " . date('Y-m-d H:i:s') . "\n";
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo "Sync failed: " . $e->getMessage() . "\n";
     exit(1);
 }

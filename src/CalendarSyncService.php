@@ -30,7 +30,7 @@ class CalendarSyncService {
         // Initialize Google client if credentials are available
         try {
             $this->googleClient = new GoogleCalendarClient();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->googleClient = null;
             // Log warning but don't fail - Google sync is optional
         }
@@ -54,7 +54,7 @@ class CalendarSyncService {
         foreach ($configs as $config) {
             try {
                 $this->syncConfiguration($config);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $this->logger->error("Sync failed for config {$config['id']}: " . $e->getMessage());
                 $this->logSyncResult($config['id'], 'error', 0, 0, 0, 0, $e->getMessage());
             }
@@ -118,7 +118,7 @@ class CalendarSyncService {
             
             $this->logger->info("Sync completed for config {$config['id']}: {$eventsProcessed} processed, {$eventsCreated} created, {$eventsUpdated} updated, {$eventsDeleted} deleted");
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->error("Sync error for config {$config['id']}: " . $e->getMessage());
             throw $e;
         } finally {
@@ -227,7 +227,7 @@ class CalendarSyncService {
     private function getEventsFromCalendar($calendarId, $startTime, $endTime, $type) {
         if ($type === 'google') {
             if (!$this->googleClient) {
-                throw new Exception('Google Calendar client not available');
+                throw new \Exception('Google Calendar client not available');
             }
             return $this->googleClient->getEvents($calendarId, $startTime, $endTime);
         } else {
@@ -289,7 +289,7 @@ class CalendarSyncService {
         // Create event in target calendar based on type
         if ($targetType === 'google') {
             if (!$this->googleClient) {
-                throw new Exception('Google Calendar client not available');
+                throw new \Exception('Google Calendar client not available');
             }
             $newEvent = $this->googleClient->createEvent(
                 $config['target_email'],
@@ -344,7 +344,7 @@ class CalendarSyncService {
         // Create event in source calendar based on type
         if ($sourceType === 'google') {
             if (!$this->googleClient) {
-                throw new Exception('Google Calendar client not available');
+                throw new \Exception('Google Calendar client not available');
             }
             $newEvent = $this->googleClient->createEvent(
                 $config['source_email'],

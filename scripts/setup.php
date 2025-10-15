@@ -53,7 +53,7 @@ try {
     echo "2. Set up your cron job to run scripts/sync.php\n";
     echo "3. Access the web interface at web/index.php\n";
     
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo "Setup failed: " . $e->getMessage() . "\n";
     exit(1);
 }

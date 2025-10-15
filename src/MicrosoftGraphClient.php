@@ -17,16 +17,14 @@ class MicrosoftGraphClient {
         $this->clientSecret = $_ENV['MICROSOFT_CLIENT_SECRET'];
         
         if (!$this->tenantId || !$this->clientId || !$this->clientSecret) {
-            throw new Exception('Microsoft Graph credentials not configured');
+            throw new \Exception('Microsoft Graph credentials not configured');
         }
         
         $this->graph = new \Microsoft\Graph\GraphServiceClient(
-            new \Microsoft\Kiota\Authentication\PhpLeagueAccessTokenProvider(
-                new \Microsoft\Kiota\Authentication\Oauth\ClientCredentialContext(
-                    $this->tenantId,
-                    $this->clientId,
-                    $this->clientSecret
-                )
+            new \Microsoft\Kiota\Authentication\Oauth\ClientCredentialContext(
+                $this->tenantId,
+                $this->clientId,
+                $this->clientSecret
             )
         );
     }
@@ -57,10 +55,10 @@ class MicrosoftGraphClient {
             
             // This is a placeholder - the actual v2 API call would be different
             // You'll need to check the Microsoft Graph SDK v2 documentation for the correct method
-            throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+            throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to get free/busy data: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to get free/busy data: " . $e->getMessage());
         }
     }
     
@@ -70,7 +68,7 @@ class MicrosoftGraphClient {
     public function createEvent($userEmail, $subject, $startTime, $endTime, $isAllDay = false) {
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
-        throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
     }
     
     /**
@@ -79,7 +77,7 @@ class MicrosoftGraphClient {
     public function deleteEvent($userEmail, $eventId) {
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
-        throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
     }
     
     /**
@@ -88,6 +86,6 @@ class MicrosoftGraphClient {
     public function getEvents($userEmail, $startTime, $endTime) {
         // Note: Microsoft Graph SDK v2 API calls need to be updated
         // This is a placeholder implementation
-        throw new Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
+        throw new \Exception("Microsoft Graph SDK v2 API calls need to be updated - please check documentation");
     }
 }

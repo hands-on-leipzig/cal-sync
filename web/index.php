@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         [$_POST['email'], $_POST['display_name']]
                     );
                     $success = 'User added successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Failed to add user: ' . $e->getMessage();
                 }
                 break;
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]
                     );
                     $success = 'Sync configuration added successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Failed to add sync configuration: ' . $e->getMessage();
                 }
                 break;
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         [$_POST['is_active'], $_POST['config_id']]
                     );
                     $success = 'Sync configuration updated successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Failed to update sync configuration: ' . $e->getMessage();
                 }
                 break;
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $syncService->syncConfiguration($config);
                     $success = 'Sync completed successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Sync failed: ' . $e->getMessage();
                 }
                 break;
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->query('DELETE FROM sync_configurations WHERE id = ?', [$_POST['config_id']]);
                     
                     $success = 'Sync configuration deleted successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Failed to delete sync configuration: ' . $e->getMessage();
                 }
                 break;
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $syncService->syncAll();
                     $success = 'All active configurations synced successfully';
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $error = 'Sync all failed: ' . $e->getMessage();
                 }
                 break;

@@ -37,7 +37,7 @@ class Database {
                 \PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (\PDOException $e) {
-            throw new Exception("Database connection failed: " . $e->getMessage());
+            throw new \Exception("Database connection failed: " . $e->getMessage());
         }
     }
     

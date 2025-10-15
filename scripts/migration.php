@@ -30,7 +30,7 @@ class DatabaseMigration {
         try {
             $result = $this->db->fetchOne('SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1');
             return $result ? $result['version'] : '0.0.0';
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Table doesn't exist, return initial version
             return '0.0.0';
         }
@@ -46,7 +46,7 @@ class DatabaseMigration {
                 [$version, $description]
             );
             echo "✓ Migration {$version}: {$description}\n";
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "✗ Failed to record migration {$version}: " . $e->getMessage() . "\n";
         }
     }
@@ -87,7 +87,7 @@ class DatabaseMigration {
                 )
             ');
             echo "✓ Created schema_migrations table\n";
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "✗ Failed to create migrations table: " . $e->getMessage() . "\n";
         }
     }
@@ -105,7 +105,7 @@ class DatabaseMigration {
             echo "🔄 Running migration {$version}: {$description}\n";
             $callback();
             $this->recordMigration($version, $description);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo "✗ Migration {$version} failed: " . $e->getMessage() . "\n";
             throw $e;
         }

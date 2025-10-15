@@ -14,7 +14,7 @@ class GoogleCalendarClient {
         $this->credentialsPath = $_ENV['GOOGLE_CREDENTIALS_PATH'] ?? __DIR__ . '/../storage/google-credentials.json';
         
         if (!file_exists($this->credentialsPath)) {
-            throw new Exception('Google credentials file not found. Please set GOOGLE_CREDENTIALS_PATH or place credentials.json in storage/');
+            throw new \Exception('Google credentials file not found. Please set GOOGLE_CREDENTIALS_PATH or place credentials.json in storage/');
         }
         
         $this->client = new \Google\Client();
@@ -41,8 +41,8 @@ class GoogleCalendarClient {
             
             return $events ?: [];
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to get Google Calendar events: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to get Google Calendar events: " . $e->getMessage());
         }
     }
     
@@ -79,8 +79,8 @@ class GoogleCalendarClient {
             
             return $createdEvent;
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to create Google Calendar event: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to create Google Calendar event: " . $e->getMessage());
         }
     }
     
@@ -118,8 +118,8 @@ class GoogleCalendarClient {
             
             return $updatedEvent;
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to update Google Calendar event: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to update Google Calendar event: " . $e->getMessage());
         }
     }
     
@@ -131,8 +131,8 @@ class GoogleCalendarClient {
             $this->service->events->delete($calendarId, $eventId);
             return true;
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to delete Google Calendar event: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to delete Google Calendar event: " . $e->getMessage());
         }
     }
     
@@ -144,8 +144,8 @@ class GoogleCalendarClient {
             $calendarList = $this->service->calendarList->listCalendarList();
             return $calendarList->getItems();
             
-        } catch (Exception $e) {
-            throw new Exception("Failed to get Google Calendar list: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to get Google Calendar list: " . $e->getMessage());
         }
     }
     
@@ -157,7 +157,7 @@ class GoogleCalendarClient {
             $this->service->calendars->get($calendarId);
             return true;
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return false;
         }
     }
