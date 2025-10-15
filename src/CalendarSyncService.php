@@ -36,9 +36,9 @@ class CalendarSyncService {
         }
         
         // Setup logging
-        $this->logger = new Logger('cal_sync');
+        $this->logger = new \Monolog\Logger('cal_sync');
         $logFile = __DIR__ . '/../storage/logs/sync_' . date('Y-m-d') . '.log';
-        $this->logger->pushHandler(new StreamHandler($logFile, Logger::INFO));
+        $this->logger->pushHandler(new \Monolog\Handler\StreamHandler($logFile, \Monolog\Logger::INFO));
     }
     
     /**
@@ -78,8 +78,8 @@ class CalendarSyncService {
         
         try {
             // Determine sync range
-            $startTime = new DateTime();
-            $endTime = new DateTime('+' . ($_ENV['MAX_SYNC_RANGE_DAYS'] ?? 30) . ' days');
+            $startTime = new \DateTime();
+            $endTime = new \DateTime('+' . ($_ENV['MAX_SYNC_RANGE_DAYS'] ?? 30) . ' days');
             
             // Determine calendar types and sync accordingly
             $sourceType = $this->getCalendarType($config['source_email']);
@@ -279,11 +279,11 @@ class CalendarSyncService {
         
         // Parse start and end times based on calendar type
         if ($eventDetails['isAllDay']) {
-            $startTime = new DateTime($eventDetails['start']->getDate());
-            $endTime = new DateTime($eventDetails['end']->getDate());
+            $startTime = new \DateTime($eventDetails['start']->getDate());
+            $endTime = new \DateTime($eventDetails['end']->getDate());
         } else {
-            $startTime = new DateTime($eventDetails['start']->getDateTime());
-            $endTime = new DateTime($eventDetails['end']->getDateTime());
+            $startTime = new \DateTime($eventDetails['start']->getDateTime());
+            $endTime = new \DateTime($eventDetails['end']->getDateTime());
         }
         
         // Create event in target calendar based on type
@@ -334,11 +334,11 @@ class CalendarSyncService {
         
         // Parse start and end times based on calendar type
         if ($eventDetails['isAllDay']) {
-            $startTime = new DateTime($eventDetails['start']->getDate());
-            $endTime = new DateTime($eventDetails['end']->getDate());
+            $startTime = new \DateTime($eventDetails['start']->getDate());
+            $endTime = new \DateTime($eventDetails['end']->getDate());
         } else {
-            $startTime = new DateTime($eventDetails['start']->getDateTime());
-            $endTime = new DateTime($eventDetails['end']->getDateTime());
+            $startTime = new \DateTime($eventDetails['start']->getDateTime());
+            $endTime = new \DateTime($eventDetails['end']->getDateTime());
         }
         
         // Create event in source calendar based on type
